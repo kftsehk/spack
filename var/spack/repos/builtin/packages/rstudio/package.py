@@ -170,6 +170,13 @@ class Rstudio(CMakePackage):
             string=True,
         )
 
+        filter_file(
+            "set(RSTUDIO_INSTALL_ELECTRON .)",
+            "set(RSTUDIO_INSTALL_ELECTRON ./bin)",
+            "cmake/globals.cmake",
+            string=True,
+        )
+
         # jsonrpc fix: boost forbids implicit conversion from boost::function<void> to bool
         filter_file(
             "   return afterResponse_;",
