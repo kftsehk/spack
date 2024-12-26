@@ -6,7 +6,6 @@
 import os
 
 from spack.package import *
-from spack.util.environment import EnvironmentModifications
 
 
 class Rstudio(CMakePackage):
@@ -16,7 +15,7 @@ class Rstudio(CMakePackage):
     url = "https://github.com/rstudio/rstudio/archive/refs/tags/v1.4.1717.tar.gz"
     git = "https://github.com/rstudio/rstudio.git"
 
-    mainainers = ["dorton21"]
+    mainainers = ["dorton21", "kftse-ust-hk", "kftsehk"]
     version("main", git=git, branch="main")
     version("2024.09.1", git=git, tag="v2024.09.1+394", preferred=True)
     version("2024.04.2", git=git, tag="v2024.04.2+764")
@@ -39,54 +38,78 @@ class Rstudio(CMakePackage):
     depends_on("cmake@3.4.3:", type="build")
     depends_on("pkgconfig", type="build")
     depends_on("ant", type="build")
-    depends_on("r@3.0.1:", type=("build", "run"))
-
     depends_on("patchelf@0.9:")
     depends_on("pandoc@2.11.4:")
     depends_on("yaml-cpp")  # find_package fails with newest version
 
-    # for old "@:1"
-    depends_on("boost+pic@1.69:", when="@:1")
-    depends_on("icu4c", when="@:1")
-    depends_on("java@8:", when="@:1")
-    depends_on("qt+webkit@5.12:", when="@:1")
-    depends_on("soci~static+boost+postgresql+sqlite", when="@:1")
+    with when("@:1"):
+        depends_on("r@3:", type=("build", "run"))
+        depends_on("boost+pic@1.69:")
+        depends_on("qt+webkit@5.12:")
+        depends_on("icu4c")
+        depends_on("soci~static+boost+postgresql+sqlite")
+        depends_on("java@8:")
+        with when("+notebook"):
+            depends_on("r-base64enc")
+            depends_on("r-digest")
+            depends_on("r-evaluate")
+            depends_on("r-glue")
+            depends_on("r-highr")
+            depends_on("r-htmltools")
+            depends_on("r-jsonlite")
+            depends_on("r-knitr")
+            depends_on("r-magrittr")
+            depends_on("r-markdown")
+            depends_on("r-mime")
+            depends_on("r-rmarkdown")
+            depends_on("r-stringi")
+            depends_on("r-stringr")
+            depends_on("r-tinytex")
+            depends_on("r-xfun")
+            depends_on("r-yaml")
 
-    # for new "@2020:"
-    depends_on(
-        "boost+atomic+chrono+date_time+filesystem+iostreams+program_options+random+regex+signals+system+thread+pic@1.69:",
-        when="@2020:",
-    )
-    depends_on("fontconfig", when="@2020:")
-    depends_on("egl", when="@2020:")
-    depends_on("soci@4+sqlite+boost+static cxxstd=11 cppflags='-fpic'", when="@2020:")
-    depends_on("uuid", when="@2020:")
+        # to use node-js provided by spack
+        patch(
+            "https://src.fedoraproject.org/rpms/rstudio/raw/5bda2e290c9e72305582f2011040938d3e356906/f/0004-use-system-node.patch",
+            sha256="4a6aff2b586ddfceb7c59215e5f4a03f25b08fcc55687acaa6ae23c11d75d0e8",
+        )
 
-    with when("+notebook"):
-        depends_on("r-base64enc")
-        depends_on("r-digest")
-        depends_on("r-evaluate")
-        depends_on("r-glue")
-        depends_on("r-highr")
-        depends_on("r-htmltools")
-        depends_on("r-jsonlite")
-        depends_on("r-knitr")
-        depends_on("r-magrittr")
-        depends_on("r-markdown")
-        depends_on("r-mime")
-        depends_on("r-rmarkdown")
-        depends_on("r-stringi")
-        depends_on("r-stringr")
-        depends_on("r-tinytex")
-        depends_on("r-xfun")
-        depends_on("r-yaml")
+    with when("@2020:"):
+        depends_on("r@4:", type=("build", "run"))
+        depends_on(
+            "boost+atomic+chrono+date_time+filesystem+iostreams+program_options+random+regex+signals+system+thread+pic@1.69:"
+        )
+        depends_on("soci@4+sqlite+boost+static cxxstd=11 cppflags='-fpic'")
+        depends_on("uuid")
+        depends_on("fontconfig")
 
-    # to use node-js provided by spack
-    patch(
-        "https://src.fedoraproject.org/rpms/rstudio/raw/5bda2e290c9e72305582f2011040938d3e356906/f/0004-use-system-node.patch",
-        sha256="4a6aff2b586ddfceb7c59215e5f4a03f25b08fcc55687acaa6ae23c11d75d0e8",
-        when="@:1",
-    )
+        # ? Shall we list all required deps and strictly require `spack external find` if user would like to use system deps?
+        for likely_link_dep in ["bzip2", "xz", "zlib", "pcre", "pcre2", "fmt"]:
+            depends_on(likely_link_dep)
+
+        # TODO: use rpath, these are not rpath linked for unknown reasons
+        # * There is build issue if type=("build", "link"), or type=("build", "link", "run")
+        for run_dep in [
+            "gtkplus+cups default_library='shared,static'",
+            "libx11",
+            "pango+X",
+            "cups",
+            "at-spi2-core",
+            "atk",
+            "libxkbcommon",
+            "libxrandr",
+            "cairo+X+gobject+pdf",
+            "openssl",
+            "gobject-introspection default_library='shared,static'",
+            "glib default_library='shared,static'",
+            "nss",
+            "nspr",
+            "wayland",
+            "alsa-lib",
+            "libxcomposite",
+            "libxdamage",
+        ]:
+            depends_on(run_dep, type="run")
 
     def cmake_args(self):
         args = [
@@ -142,6 +165,17 @@ class Rstudio(CMakePackage):
                 string=True,
             )
 
+    @run_after("install")
+    def create_bin_softlink(self):
+        if self.spec.satisfies("@:1"):
+            return
+        if self.spec.satisfies("@2020:"):
+            # Create softlinks for executables from ./ to ./bin
+            # This is needed as the installation places executables in ./
+            os.makedirs(self.prefix.bin, exist_ok=True)
+            for bin_name in ["rstudio", "chrome-sandbox", "chrome_crashpad_handler"]:
+                os.symlink(join_path(self.prefix, bin_name), join_path(self.prefix.bin, bin_name))
+
     @run_before("cmake")
     def install_deps(self):
 
@@ -162,19 +196,12 @@ class Rstudio(CMakePackage):
 
         # method 1)
         filter_file(
-            'set(PANDOC_VERSION "2.11.4" CACHE INTERNAL "Pandoc version")',
+            r'set(PANDOC_VERSION "2\\.[0-9.]+" CACHE INTERNAL "Pandoc version")',
             'set(PANDOC_VERSION "{0}" CACHE INTERNAL "Pandoc version")'.format(
                 self.spec["pandoc"].version
             ),
             "src/cpp/session/CMakeLists.txt",
-            string=True,
-        )
-
-        filter_file(
-            "set(RSTUDIO_INSTALL_ELECTRON .)",
-            "set(RSTUDIO_INSTALL_ELECTRON ./bin)",
-            "cmake/globals.cmake",
-            string=True,
+            string=False,
         )
 
         # jsonrpc fix: boost forbids implicit conversion from boost::function<void> to bool
