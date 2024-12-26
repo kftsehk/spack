@@ -15,7 +15,7 @@ class Rstudio(CMakePackage):
     url = "https://github.com/rstudio/rstudio/archive/refs/tags/v1.4.1717.tar.gz"
     git = "https://github.com/rstudio/rstudio.git"
 
-    mainainers = ["dorton21", "kftse-ust-hk", "kftsehk"]
+    maintainers("dorton21", "kftse-ust-hk", "kftsehk")
     version("main", git=git, branch="main")
     version("2024.09.1", git=git, tag="v2024.09.1+394", preferred=True)
     version("2024.04.2", git=git, tag="v2024.04.2+764")
