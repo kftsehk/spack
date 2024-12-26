@@ -77,13 +77,15 @@ class Rstudio(CMakePackage):
     with when("@2020:"):
         depends_on("r@4:", type=("build", "run"))
         depends_on(
-            "boost+atomic+chrono+date_time+filesystem+iostreams+program_options+random+regex+signals+system+thread+pic@1.69:"
+            "boost@1.69: +atomic+chrono+date_time+filesystem+iostreams+program_options"
+            "+random+regex+signals+system+thread +pic"
         )
         depends_on("soci@4+sqlite+boost+static cxxstd=11 cppflags='-fpic'")
         depends_on("uuid")
         depends_on("fontconfig")
 
-        # ? Shall we list all required deps and strictly require `spack external find` if user would like to use system deps?
+        # ? Shall we list all required deps strictly?
+        # If user would like to use system deps, it will require `spack external find`
         for likely_link_dep in ["bzip2", "xz", "zlib", "pcre", "pcre2", "fmt"]:
             depends_on(likely_link_dep)
 
