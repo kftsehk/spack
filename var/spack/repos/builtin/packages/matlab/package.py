@@ -11,6 +11,10 @@ from spack.package import *
 from spack.util.environment import EnvironmentModifications, is_system_path
 
 
+def use_archive_values(v):
+    return v == "<file-uri>" or v.startswith("file://")
+
+
 class Matlab(Package):
     """MATLAB (MATrix LABoratory) is a multi-paradigm numerical computing
     environment and fourth-generation programming language. A proprietary
@@ -107,6 +111,16 @@ class Matlab(Package):
         description="Build all dependencies for matlab installer / runtime",
     )
 
+    variant(
+        "use_archive",
+        default="<file-uri>",
+        values=use_archive_values,
+        description="file:///path/to/archives.tar or compressed tar into archives "
+        + "in order to work with offline installs. "
+        + "The archive should contain in its root './common' and './glnxa64' folders. "
+        + "Defaults to download from MathWorks, does not require an archive file.",
+    )
+
     with when("+build_dependencies"):
         depends_on("atk", type=dt.ALL_TYPES)
         depends_on("at-spi2-core", type=dt.ALL_TYPES)
@@ -120,6 +134,15 @@ class Matlab(Package):
         depends_on("libxdamage", type=dt.ALL_TYPES)
         depends_on("libxrandr", type=dt.ALL_TYPES)
         depends_on("pango", type=dt.ALL_TYPES)
+        with when("@R2023:"):
+            depends_on("libbsd", type=dt.ALL_TYPES)
+            depends_on("libxcb", type=dt.ALL_TYPES)
+            depends_on("libxkbcommon", type=dt.ALL_TYPES)
+            depends_on("xcb-util", type=dt.ALL_TYPES)
+            depends_on("xcb-util-image", type=dt.ALL_TYPES)
+            depends_on("xcb-util-keysyms", type=dt.ALL_TYPES)
+            depends_on("xcb-util-renderutil", type=dt.ALL_TYPES)
+            # depends_on("qt-base+dbus+gui+network+widgets", type=dt.ALL_TYPES)
 
     # Licensing
     license_required = True
@@ -131,6 +154,8 @@ class Matlab(Package):
     extendable = True
 
     def url_for_version(self, version):
+        if version >= Version("R2024"):
+            return "file://{0}/matlab_{1}_Linux.zip".format(os.getcwd(), version)
         return "file://{0}/matlab_{1}_glnxa64.zip".format(os.getcwd(), version)
 
     def setup_run_environment(self, env: EnvironmentModifications) -> None:
@@ -172,4 +197,17 @@ class Matlab(Package):
         # Run silent installation script
         # Full path required
         input_file = join_path(self.stage.source_path, "spack_installer_input.txt")
+
+        if len(self.spec.variants["use_archive"].value.split("file://")) == 2:
+            # Extract the archive
+            subprocess.call(
+                [
+                    "tar",
+                    "-C",
+                    join_path(self.stage.source_path, "archives"),
+                    "-xf",
+                    self.spec.variants["use_archive"].value.split("file://")[1],
+                ]
+            )
+
         subprocess.call(["./install", "-inputFile", input_file])
