@@ -19,6 +19,11 @@ class Onnx(CMakePackage):
     license("Apache-2.0", checked_by="wdconinc")
 
     version("master", branch="master")
+    version(
+        "1.17.0",
+        preferred=True,
+        sha256="8d5e983c36037003615e5a02d36b18fc286541bf52de1a78f6cf9f32005a820e",
+    )
     version("1.16.2", sha256="84fc1c3d6133417f8a13af6643ed50983c91dacde5ffba16cc8bb39b22c2acbb")
     version("1.16.1", sha256="0e6aa2c0a59bb2d90858ad0040ea1807117cc2f05b97702170f18e6cd6b66fb3")
     version("1.16.0", sha256="0ce153e26ce2c00afca01c331a447d86fbf21b166b640551fe04258b4acfc6a4")
@@ -41,15 +46,23 @@ class Onnx(CMakePackage):
         "1.10.1", sha256="cb2fe3e0c9bba128a5790a565d81be30f4b5571eaca5418fb19df8d2d0f11ce2"
     )  # py-torch@1.10
     version("1.10.0", sha256="705a27ee076713b8c755911913c9ffa8f96b95fc3a8568ed0b8e1dd954d67147")
-    version("1.9.0", sha256="61d459a5f30604cabec352574119a6685dfd43bfa757cfbff52be9471d5b8ea0")
     version(
-        "1.8.0_2020-11-03", commit="54c38e6eaf557b844e70cebc00f39ced3321e9ad"
+        "1.9.0",
+        sha256="61d459a5f30604cabec352574119a6685dfd43bfa757cfbff52be9471d5b8ea0",
+        deprecated=True,
+    )
+    version(
+        "1.8.0_2020-11-03", commit="54c38e6eaf557b844e70cebc00f39ced3321e9ad", deprecated=True
     )  # py-torch@1.8:1.9
     version(
-        "1.7.0_2020-05-31", commit="a82c6a7010e2e332d8f74ad5b0c726fd47c85376"
+        "1.7.0_2020-05-31", commit="a82c6a7010e2e332d8f74ad5b0c726fd47c85376", deprecated=True
     )  # py-torch@1.6:1.7
-    version("1.6.0_2020-02-16", commit="9fdae4c68960a2d44cd1cc871c74a6a9d469fa1f")  # py-torch@1.5
-    version("1.6.0_2019-11-06", commit="fea8568cac61a482ed208748fdc0e1a8e47f62f5")  # py-torch@1.4
+    version(
+        "1.6.0_2020-02-16", commit="9fdae4c68960a2d44cd1cc871c74a6a9d469fa1f", deprecated=True
+    )  # py-torch@1.5
+    version(
+        "1.6.0_2019-11-06", commit="fea8568cac61a482ed208748fdc0e1a8e47f62f5", deprecated=True
+    )  # py-torch@1.4
     version(
         "1.6.0_2019-09-26", commit="034921bd574cc84906b7996c07873454b7dd4135", deprecated=True
     )  # py-torch@1.3
@@ -74,7 +87,13 @@ class Onnx(CMakePackage):
     generator("ninja")
     depends_on("cmake@3.1:", type="build")
     depends_on("python", type="build")
+
     depends_on("protobuf")
+    depends_on("protobuf@4.21.12", when="@1.16:1.17 ^python@:3.11")
+    depends_on("protobuf@4.25.1", when="@1.16:1.17 ^python@3.12:")
+    depends_on("protobuf@4.21.12", when="@1.14:1.15")
+    depends_on("protobuf@3.20.2", when="@1.13")
+    depends_on("protobuf@3.16.0", when="@:1.12")
 
     def patch(self):
         if self.spec.satisfies("@1.13:1.14 ^protobuf@3.22:"):

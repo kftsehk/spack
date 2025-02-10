@@ -341,6 +341,8 @@ class IntelOneapiCompilers(IntelOneApiPackage, CompilerPackage):
     # cannot express that properly. For now, add conflicts for non-gcc compilers
     # instead.
     requires("%gcc", msg="intel-oneapi-compilers must be installed with %gcc")
+    # icx-lto depends on libonnxruntime
+    depends_on("onnx@1", when="@2023:", type=dt.ALL_TYPES)
 
     for v in versions:
         version(v["version"], expand=False, **v["cpp"])
