@@ -331,16 +331,16 @@ class IntelOneapiCompilers(IntelOneApiPackage, CompilerPackage):
 
     # See https://github.com/spack/spack/issues/39252
     depends_on("patchelf@:0.17", type="build", when="@:2024.1")
-    # Add the nvidia variant
-    variant("nvidia", default=False, description="Install NVIDIA plugin for OneAPI")
-    conflicts("@:2022.2.1", when="+nvidia", msg="Codeplay NVIDIA plugin requires newer release")
-    # Add the amd variant
-    variant("amd", default=False, description="Install AMD plugin for OneAPI")
-    conflicts("@:2022.2.1", when="+amd", msg="Codeplay AMD plugin requires newer release")
     # TODO: effectively gcc is a direct dependency of intel-oneapi-compilers, but we
     # cannot express that properly. For now, add conflicts for non-gcc compilers
     # instead.
     requires("%gcc", msg="intel-oneapi-compilers must be installed with %gcc")
+
+    # Add the nvidia variant
+    variant("nvidia", when="@2023:", default=False, description="Install NVIDIA plugin for OneAPI")
+    # Add the amd variant
+    variant("amd", when="@2023:", default=False, description="Install AMD plugin for OneAPI")
+    conflicts("+nvidia +amd", msg="NVIDIA and AMD plugin cannot be installed together")
 
     for v in versions:
         version(v["version"], expand=False, **v["cpp"])
